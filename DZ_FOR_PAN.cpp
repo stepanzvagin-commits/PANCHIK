@@ -10,23 +10,23 @@
 
 using namespace std;
 
-const double IL76_MASS = 155000.0;          // Масса самолета, кг
-const double IL76_WING_AREA = 300.0;       // Площадь крыла, м²
-const double IL76_NOMINAL_THRUST = 4 * 114660.0; // Суммарная тяга, Н
-const double IL76_CY0 = 0.25;               // Коэффициент подъемной силы при нулевом угле атаки
-const double MAX_THRUST_PERCENT = 1.0;     // Реалистичный процент тяги
-const double INITIAL_ALTITUDE = 300.0;      // Начальная высота, м
-const double FINAL_ALTITUDE = 5000.0;       // Конечная высота, м
-const double INITIAL_VELOCITY = 300.0 / 3.6; // Начальная скорость, м/с
-const double FINAL_VELOCITY = 750.0 / 3.6;  // Конечная скорость, м/с
-const double GRAVITY = 9.81;               // Ускорение свободного падения, м/с²
+const double mass_of_IL76 = 155000.0;          // Масса самолета, кг
+const double wing_area_of_IL76 = 300.0;       // Площадь крыла, м²
+const double actual_thrust_of_IL76 = 4 * 114660.0; // Суммарная тяга, Н
+const double cy0_of_IL76 = 0.25;               // Коэффициент подъемной силы при нулевом угле атаки
+const double real_thrust_of_IL76 = 1.0;     // Реалистичный процент тяги
+const double start_altitude = 300.0;      // Начальная высота, м
+const double end_altitude = 5000.0;       // Конечная высота, м
+const double start_velocity = 300.0 / 3.6; // Начальная скорость, м/с
+const double end_velocity = 750.0 / 3.6;  // Конечная скорость, м/с
+const double g_coeff = 9.81;               // Ускорение свободного падения, м/с²
 const double PI = 3.14159;
 const double Cy0 = 0.250;
-const double MAX_CLIMB_ANGLE = 15.0; // Максимальный угол набора высоты в градусах
-const double DEG_TO_RAD = 57.3; // Перевод из градусов в радианы
-const double MAX_VERTICAL_SPEED = 8.0; // Максимальная скорость набора высоты
-const double MIN_SPEED = INITIAL_VELOCITY; // Минимальная скорость для набора высоты
-const double DELTA_H = 250;
+const double max_climb_angle = 15.0; // Максимальный угол набора высоты в градусах
+const double deg_to_rad = 57.3; // Перевод из градусов в радианы
+const double max_vertical_velocity = 8.0; // Максимальная скорость набора высоты
+const double min_velocity = start_velocity; // Минимальная скорость для набора высоты
+const double delt_H = 250;
 class CSVWriter {
 private:
     ofstream file;
@@ -209,10 +209,10 @@ public:
     double K;           // Коэффициент индуктивного сопротивления
     double Cy_max;      // Максимальный коэффициент подъемной силы
 
-    Aircraft(double m = IL76_MASS, double wing = IL76_WING_AREA)
+    Aircraft(double m = mass_of_IL76, double wing = wing_area_of_IL76)
         : wing_area(wing), initial_mass(m), env(), mass(m) {
 
-        thrust = IL76_NOMINAL_THRUST * MAX_THRUST_PERCENT;
+        thrust = actual_thrust_of_IL76 * real_thrust_of_IL76;
         fuel_flow = 0.69; // кг/с - при крейсерском движении
         Cx0 = 0.0275;
         K = 0.05;
@@ -225,14 +225,14 @@ public:
         double q = 0.5 * rho * current_velocity * current_velocity;
         double current_P = total_thrust(current_altitude);
 
-        double alpha = (IL76_MASS * GRAVITY - q * IL76_WING_AREA * IL76_CY0) / (q * IL76_WING_AREA * grad_Cy + current_P);
+        double alpha = (mass_of_IL76 * g_coeff - q * wing_area_of_IL76 * cy0_of_IL76) / (q * wing_area_of_IL76 * grad_Cy + current_P);
         return alpha;
 
     }
     // Расчет градиента коэффициента подъема
     double grad_Cy_alpha() const{
         double b = 39.6; // размах крыла
-        double AR = b*b/IL76_WING_AREA;
+        double AR = b*b/wing_area_of_IL76;
         return ((2 * PI * AR) / (2 + pow(4+AR*AR, 0.5))) * PI/180; // перевод в градусы так как угол атаки задаю в градусах
     }
 
@@ -258,7 +258,7 @@ double getLiftCoefficient(double alpha) const{
     double computeLiftForce(double current_velocity, double current_altitude, double alpha) const {
         double rho = env.getDensity(current_altitude);
         double Cy = getLiftCoefficient(alpha);
-        double L = 0.5 * rho * current_velocity * current_velocity * IL76_WING_AREA * Cy;
+        double L = 0.5 * rho * current_velocity * current_velocity * wing_area_of_IL76 * Cy;
         return L;
     }
 
@@ -266,14 +266,14 @@ double getLiftCoefficient(double alpha) const{
     double computeDragForce(double current_velocity, double current_altitude, double alpha) const {
         double rho = env.getDensity(current_altitude);
         double Cx = getDragCoefficient(getLiftCoefficient(alpha));
-        double X = 0.5 * rho * current_velocity * current_velocity * IL76_WING_AREA * Cx;
+        double X = 0.5 * rho * current_velocity * current_velocity * wing_area_of_IL76 * Cx;
         return X;
     }
     // Расчет тяги в зависимости от параметров окружающей среды
     double total_thrust(double current_altitude){
         double p_0 = env.getPressure(0);
         double current_p = env.getPressure(current_altitude);
-        return IL76_NOMINAL_THRUST*MAX_THRUST_PERCENT * pow(current_p/p_0, 0.7); // коррекция тяги по плотности и давлению
+        return actual_thrust_of_IL76*real_thrust_of_IL76 * pow(current_p/p_0, 0.7); // коррекция тяги по плотности и давлению
     }
 };
 
@@ -284,18 +284,18 @@ class DynamicProgrammingSolver {
 public:
     DynamicProgrammingSolver() {}
     // Расчет этапа разгона
-    double calculate_razgon(double altitude, double initial_velocity, double final_velocity, Aircraft& ac){
-        double avg_Vel = (initial_velocity+final_velocity) / 2;
-        if (avg_Vel < MIN_SPEED) avg_Vel = MIN_SPEED;
+    double calculate_razgon(double altitude, double start_velocity, double end_velocity, Aircraft& ac){
+        double avg_Vel = (start_velocity+end_velocity) / 2;
+        if (avg_Vel < min_velocity) avg_Vel = min_velocity;
         double current_P = ac.total_thrust(altitude);
         double alpha_degree = ac.calculate_alpha(altitude, avg_Vel);
 
         double Cx = ac.getDragCoefficient(ac.getLiftCoefficient(alpha_degree));
         double rho = env.getDensity(altitude);
         double q = 0.5 * avg_Vel* avg_Vel * rho;
-        double alpha_rad = alpha_degree/DEG_TO_RAD;
-        double a_x = ((current_P * cos(alpha_rad)) - q * Cx * IL76_WING_AREA) / IL76_MASS;
-        return (final_velocity - initial_velocity) / a_x;
+        double alpha_rad = alpha_degree/deg_to_rad;
+        double a_x = ((current_P * cos(alpha_rad)) - q * Cx * wing_area_of_IL76) / mass_of_IL76;
+        return (end_velocity - start_velocity) / a_x;
 
     }
     // Расчет этапа подъема
@@ -307,11 +307,11 @@ public:
         double Cx = ac.getDragCoefficient(ac.getLiftCoefficient(alpha_degree));
         double rho = env.getDensity(avg_alt);
         double q = 0.5 * velocity*velocity*rho;
-        double X = q * IL76_WING_AREA * Cx;
+        double X = q * wing_area_of_IL76 * Cx;
 
-        double sin_tetha = min((current_P-X) / (IL76_MASS* GRAVITY), MAX_CLIMB_ANGLE/DEG_TO_RAD);
+        double sin_tetha = min((current_P-X) / (mass_of_IL76* g_coeff), max_climb_angle/deg_to_rad);
         double vel_y = velocity * sin_tetha;
-        if (vel_y > MAX_VERTICAL_SPEED) vel_y = MAX_VERTICAL_SPEED;
+        if (vel_y > max_vertical_velocity) vel_y = max_vertical_velocity;
 
         double dt = (final_alt-initial_alt) / vel_y;
         return dt;
@@ -330,8 +330,8 @@ public:
         double dt = max(time_for_climb, time_for_acc);
 
         double Vy = dH/dt;
-        if(Vy > MAX_VERTICAL_SPEED){
-            double optional_dt = dH / MAX_VERTICAL_SPEED;
+        if(Vy > max_vertical_velocity){
+            double optional_dt = dH / max_vertical_velocity;
             dt = optional_dt;
         }
         return dt;
@@ -339,14 +339,14 @@ public:
     Trajectory computeOptimalTrajectory(Aircraft& ac) {
 
 
-        int N = (FINAL_ALTITUDE - INITIAL_ALTITUDE) / DELTA_H;
-        double DELTA_V = (FINAL_VELOCITY - INITIAL_VELOCITY) / N;
+        int N = (end_altitude - start_altitude) / delt_H;
+        double DELTA_V = (end_velocity - start_velocity) / N;
         vector <double> Hgrid(N+1);
         vector <double> Vgrid(N+1);
 
         for (size_t i = 0; i <= N; i++){
-            Hgrid[i] = INITIAL_ALTITUDE + i * DELTA_H;
-            Vgrid[i] = INITIAL_VELOCITY + i * DELTA_V;
+            Hgrid[i] = start_altitude + i * delt_H;
+            Vgrid[i] = start_velocity + i * DELTA_V;
         }
         cout << "Критерий минимизации времени" << "\n";
         cout << "Текущее количество N: " << N << "\n";
@@ -361,8 +361,8 @@ public:
                 double current_altitude = Hgrid[i];
                 double current_velocity = Vgrid[j];
                 if (j < N){
-                    double final_velocity = Vgrid[j+1];
-                    double time_razgon = calculate_razgon(current_altitude, current_velocity, final_velocity, ac);
+                    double end_velocity = Vgrid[j+1];
+                    double time_razgon = calculate_razgon(current_altitude, current_velocity, end_velocity, ac);
                     double new_cost = cost_table[i][j]+time_razgon;
 
                     if(new_cost < cost_table[i][j+1]){
@@ -375,8 +375,8 @@ public:
                 }
 
                 if(i < N){
-                    double final_altitude = Hgrid[i+1];
-                    double time_podiem = calculate_podiem(current_altitude, final_altitude, current_velocity, ac);
+                    double end_altitude = Hgrid[i+1];
+                    double time_podiem = calculate_podiem(current_altitude, end_altitude, current_velocity, ac);
                     double new_cost = cost_table[i][j]+time_podiem;
 
                     if (new_cost < cost_table[i+1][j]){
@@ -388,9 +388,9 @@ public:
                 }
 
                 if (i < N && j < N){
-                    double final_altitude = Hgrid[i+1];
-                    double final_velocity = Vgrid[j+1];
-                    double time_podiem_razgon = calculate_podiem_razgon(current_altitude, final_altitude, current_velocity, final_velocity, ac);
+                    double end_altitude = Hgrid[i+1];
+                    double end_velocity = Vgrid[j+1];
+                    double time_podiem_razgon = calculate_podiem_razgon(current_altitude, end_altitude, current_velocity, end_velocity, ac);
                     double new_cost = cost_table[i][j]+time_podiem_razgon;
 
                     if(new_cost < cost_table[i+1][j+1]){
